@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Greenfield University{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                🎓 <span>Greenfield University</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">
+                    Advisor
+                </a>
+                {% for t in all_teachers %}
+                <a href="/teacher/{{ t.id }}" class="nav-link nav-teacher"
+                   style="--teacher-color: {{ t.color }}">
+                    {{ t.emoji }} {{ t.subject }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Greenfield University AI Campus · Powered by Ollama + FastAPI</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

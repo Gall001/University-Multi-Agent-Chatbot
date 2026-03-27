@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Academic Advisor — Greenfield University{% endblock %}
+
+{% block body_class %}page-advisor{% endblock %}
+
+{% block content %}
+<div class="hero advisor-hero">
+    <div class="hero-badge">Academic Advisor</div>
+    <h1 class="hero-title">Welcome to Greenfield University</h1>
+    <p class="hero-sub">Ask any academic question. I'll connect you with the right professor.</p>
+</div>
+
+<!-- Advisor Card -->
+<div class="advisor-card">
+    <div class="advisor-avatar">🎩</div>
+    <div class="advisor-info">
+        <h2>{{ advisor.name }}</h2>
+        <p class="advisor-title-label">{{ advisor.title }}</p>
+        <p class="advisor-bio">
+            I'm here to help you navigate the academic departments.
+            Ask me anything — I'll make sure the right professor gets your question.
+        </p>
+    </div>
+</div>
+
+<!-- Ask Form -->
+<div class="ask-section">
+    <form action="/ask" method="post" class="ask-form" id="askForm">
+        <label for="question" class="ask-label">What would you like to learn about?</label>
+        <textarea
+            name="question"
+            id="question"
+            class="ask-textarea"
+            placeholder="e.g. How does natural selection work? What caused the French Revolution? How do sorting algorithms compare?"
+            rows="4"
+            required
+            minlength="5"
+        ></textarea>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span class="btn-text">Ask the Advisor →</span>
+            <span class="btn-loading hidden">Finding the right professor…</span>
+        </button>
+    </form>
+</div>
+
+<!-- Department Overview -->
+<section class="departments">
+    <h2 class="section-title">Our Departments</h2>
+    <div class="teacher-grid">
+        {% for teacher in teachers %}
+        <a href="/teacher/{{ teacher.id }}" class="teacher-card" style="--card-color: {{ teacher.color }}">
+            <div class="teacher-card-emoji">{{ teacher.emoji }}</div>
+            <div class="teacher-card-name">{{ teacher.name }}</div>
+            <div class="teacher-card-subject">{{ teacher.subject }}</div>
+            <div class="teacher-card-specialty">{{ teacher.specialty }}</div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('askForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+
+    form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+    });
+</script>
+{% endblock %}

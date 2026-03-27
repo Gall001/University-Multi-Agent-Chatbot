@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}{{ teacher.name }} — Greenfield University{% endblock %}
+
+{% block body_class %}page-teacher{% endblock %}
+
+{% block head %}
+<style>
+    /* Per-teacher accent color via CSS custom property */
+    :root { --accent: {{ teacher.color }}; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Teacher Hero Banner -->
+<div class="teacher-hero" style="background: linear-gradient(135deg, {{ teacher.color }}22 0%, {{ teacher.color }}11 100%); border-bottom: 3px solid {{ teacher.color }};">
+    <div class="teacher-hero-inner">
+        <div class="teacher-avatar" style="background: {{ teacher.color }}22; border: 3px solid {{ teacher.color }};">
+            {{ teacher.emoji }}
+        </div>
+        <div class="teacher-hero-info">
+            <div class="teacher-badge" style="background: {{ teacher.color }}; color: white;">
+                {{ teacher.subject }}
+            </div>
+            <h1 class="teacher-name">{{ teacher.name }}</h1>
+            <p class="teacher-title-label">{{ teacher.title }}</p>
+            <p class="teacher-specialty">{{ teacher.specialty }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="chat-layout">
+
+    <!-- Main Chat Area -->
+    <div class="chat-main">
+
+        <!-- Student's Question -->
+        {% if question %}
+        <div class="message-bubble student-bubble">
+            <div class="bubble-label">You asked:</div>
+            <div class="bubble-text">{{ question }}</div>
+        </div>
+
+        <!-- Teacher's Answer (streamed) -->
+        <div class="message-bubble teacher-bubble" style="border-left: 4px solid {{ teacher.color }};">
+            <div class="bubble-label" style="color: {{ teacher.color }};">
+                {{ teacher.emoji }} {{ teacher.name }}:
+            </div>
+            <div class="bubble-text" id="answerBox">
+                <span class="typing-cursor">▌</span>
+            </div>
+            <div class="bubble-status" id="streamStatus">Thinking…</div>
+        </div>
+        {% else %}
+        <!-- No question — prompt the user -->
+        <div class="no-question-prompt">
+            <p>{{ teacher.emoji }} {{ teacher.name }} is ready to help.</p>
+            <a href="/" class="btn btn-outline">← Go ask the Advisor</a>
+        </div>
+        {% endif %}
+
+        <!-- Ask Another Question -->
+        {% if question %}
+        <div class="ask-again-section">
+            <h3 class="ask-again-title">Ask a follow-up or new question</h3>
+            <form action="/ask" method="post" class="ask-form ask-form-small" id="followUpForm">
+                <textarea
+                    name="question"
+                    class="ask-textarea"
+                    placeholder="Ask another question…"
+                    rows="2"
+                    required
+                    minlength="5"
+                ></textarea>
+                <button type="submit" class="btn btn-primary" style="background: {{ teacher.color }};">
+                    Ask the Advisor →
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar: Other Professors -->
+    <aside class="chat-sidebar">
+        <h3 class="sidebar-title">Other Professors</h3>
+        {% for t in other_teachers %}
+        <a href="/teacher/{{ t.id }}{% if question %}?question={{ question | urlencode }}{% endif %}"
+           class="sidebar-teacher" style="--t-color: {{ t.color }};">
+            <span class="sidebar-emoji">{{ t.emoji }}</span>
+            <div>
+                <div class="sidebar-name">{{ t.name }}</div>
+                <div class="sidebar-subject">{{ t.subject }}</div>
+            </div>
+        </a>
+        {% endfor %}
+        <a href="/" class="sidebar-back">← Back to Advisor</a>
+    </aside>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if question %}
+<script>
+    const answerBox = document.getElementById('answerBox');
+    const streamStatus = document.getElementById('streamStatus');
+    const question = {{ question | tojson }};
+    const teacherId = "{{ teacher.id }}";
+
+    // Clear the typing cursor before streaming starts
+    answerBox.innerHTML = '<span class="typing-cursor">▌</span>';
+
+    let fullText = '';
+
+    // Connect to the SSE streaming endpoint
+    const url = `/stream/${teacherId}?question=${encodeURIComponent(question)}`;
+    const evtSource = new EventSource(url);
+
+    evtSource.onmessage = (event) => {
+        const data = event.data;
+
+        if (data === '[DONE]') {
+            evtSource.close();
+            streamStatus.textContent = '✓ Response complete';
+            streamStatus.classList.add('status-done');
+            // Remove typing cursor
+            const cursor = answerBox.querySelector('.typing-cursor');
+            if (cursor) cursor.remove();
+            return;
+        }
+
+        if (data.startsWith('[ERROR')) {
+            evtSource.close();
+            streamStatus.textContent = '⚠ Error receiving response';
+            return;
+        }
+
+        // Unescape newlines and append text
+        const chunk = data.replace(/\\n/g, '\n');
+        fullText += chunk;
+
+        // Render markdown-like formatting (newlines → <br>)
+        const cursor = answerBox.querySelector('.typing-cursor');
+        const formatted = fullText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
+
+        answerBox.innerHTML = formatted + '<span class="typing-cursor">▌</span>';
+        streamStatus.textContent = 'Responding…';
+
+        // Auto-scroll to keep up with the streaming text
+        answerBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    };
+
+    evtSource.onerror = () => {
+        evtSource.close();
+        streamStatus.textContent = '⚠ Connection lost. Try refreshing.';
+    };
+</script>
+{% endif %}
+{% endblock %}
